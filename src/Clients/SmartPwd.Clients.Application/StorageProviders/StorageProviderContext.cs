@@ -1,19 +1,19 @@
-﻿using SmartPwd.Clients.Application.Models;
-using SmartPwd.Clients.Application.StorageProviders.Contracts;
+﻿using SmartPwd.Clients.Application.StorageProviders.Contracts;
+using SmartPwd.Clients.Application.StorageProviders.Extensions;
 
 namespace SmartPwd.Clients.Application.StorageProviders;
 
 public class StorageProviderContext
 {
     private readonly IServiceProvider _sp;
-    private readonly Dictionary<Type, Provider> _providersData;
+    private readonly StorageProviderContextData _data;
 
     public StorageProviderContext(
         IServiceProvider sp,
-        Dictionary<Type, Provider> providersData)
+        StorageProviderContextData data)
     {
         _sp = sp;
-        _providersData = providersData;
+        _data = data;
     }
 
     TStorageProvider GetStorageProvider<TStorageProvider>()
@@ -27,5 +27,16 @@ public class StorageProviderContext
         }
 
         return storageProvider;
+    }
+
+    IStorageProvider GetLocalStorageProvider()
+    {
+        IStorageProvider? localStorageProvider = _sp.GetService(_data.LocalProvider) as IStorageProvider;
+        if (localStorageProvider is null)
+        {
+            throw new Exception($"No registered providers for type {_data.LocalProvider}");
+        }
+
+        return localStorageProvider;
     }
 }

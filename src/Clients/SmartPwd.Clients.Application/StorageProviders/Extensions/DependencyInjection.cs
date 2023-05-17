@@ -8,16 +8,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddStorageProviderContext(
         this IServiceCollection services,
-        Func<StorageProviderContextBuilder, StorageProviderContextBuilder> builderFunc)
+        Func<StorageProviderContextBuilder, StorageProviderContextData> builderFunc)
     {
-        var builder = builderFunc(new StorageProviderContextBuilder());
+        var data = builderFunc(new StorageProviderContextBuilder());
 
-        foreach (KeyValuePair<Type,Provider> valuePair in builder.ProvidersData)
+        foreach (KeyValuePair<Type,Provider> valuePair in data.ProvidersData)
         {
             services.AddScoped(typeof(IServiceProvider), valuePair.Key);
         }
 
-        services.AddScoped(sp => new StorageProviderContext(sp, builder.ProvidersData));
+        services.AddScoped(sp => new StorageProviderContext(sp, data));
 
         return services;
     }
@@ -37,4 +37,26 @@ public class StorageProviderContextBuilder
 
         return this;
     }
+
+    public StorageProviderContextData WithLocalProvider<TLocalStorageProvider>(Provider provider)
+        where TLocalStorageProvider : class, IStorageProvider
+    {
+        if (!ProvidersData.TryAdd(typeof(TLocalStorageProvider), provider))
+        {
+            throw new Exception($"Unable to register storage provider for type {typeof(TLocalStorageProvider)}.");
+        }
+
+        return new StorageProviderContextData
+        {
+            LocalProvider = typeof(TLocalStorageProvider),
+            ProvidersData = ProvidersData
+        };
+    }
+}
+
+public class StorageProviderContextData
+{
+    public required Dictionary<Type, Provider> ProvidersData { get; init; }
+
+    public required Type LocalProvider { get; init; }
 }
